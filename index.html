@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weather Background App</title>
+</head>
+<body>
+  <div class="weather-info">
+    <h1>Current Weather</h1>
+    <p id="location">Loading location...</p>
+    <p id="temperature">Loading temperature...</p>
+    <p id="condition">Loading condition...</p>
+  </div>
+  <style>
+    body {
+  margin: 0;
+  padding: 0;
+  background-size: cover;
+  background-position: center;
+  font-family: Arial, sans-serif;
+  color: white;
+  text-align: center;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.weather-info {
+  background: rgba(0, 0, 0, 0.5);
+  padding: 2rem;
+  border-radius: 1rem;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+  </style>
+
+  <script >
+    const apiKey = "ea4a6c34ec9ce8afa5118dc2ea6aa30c"; // Replace with your OpenWeatherMap API key
+
+// Map weather condition to image file names
+const weatherImages = {
+  Clear: "sunny.jpg",
+  Clouds: "clouds.jpg",
+  Rain: "rain.jpg",
+  Mist: "mist.jpg",
+  Thunderstorm: "thunderstorm.jpg",
+  Snow: "snow.jpg",
+  Drizzle: "rain.jpg", // optional mapping for light rain
+  Haze: "mist.jpg",
+  Fog: "mist.jpg",
+  Smoke: "mist.jpg",
+  Dust: "mist.jpg"
+};
+
+function setWeatherBackground(condition) {
+  const imageFile = weatherImages[condition] || "clear.jpg"; // Default image
+  document.body.style.backgroundImage = `url('images/${imageFile}')`;
+}
+
+function displayWeather(data) {
+  const temp = data.main.temp;
+  const condition = data.weather[0].main;
+  const city = data.name;
+
+  document.getElementById("location").textContent = `Location: ${city}`;
+  document.getElementById("temperature").textContent = `Temperature: ${temp}°C`;
+  document.getElementById("condition").textContent = `Condition: ${condition}`;
+
+  setWeatherBackground(condition);
+}
+
+function fetchWeather(lat, lon) {
+  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
+  fetch(url)
+    .then(response => response.json())
+    .then(data => displayWeather(data))
+    .catch(err => console.error("Weather fetch error:", err));
+}
+
+function getLocationAndWeather() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        fetchWeather(position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        alert("Location access denied. Please enable it to fetch weather.");
+      }
+    );
+  } else {
+    alert("Geolocation is not supported by your browser.");
+  }
+}
+
+window.onload = getLocationAndWeather;
+
+  </script>
+</body>
+</html>
