@@ -1,101 +1,1219 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Weather Background App</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZEPHYR — Groq Weather AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,300&family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --fs: 15px;
+  --ff-display: 'Syne', sans-serif;
+  --ff-body:    'DM Sans', sans-serif;
+  --ff-mono:    'JetBrains Mono', monospace;
+
+  /* DARK */
+  --bg:          #080c14;
+  --bg2:         #0d1220;
+  --bg3:         #111827;
+  --glass:       rgba(13,18,32,0.88);
+  --card:        rgba(255,255,255,0.042);
+  --card-h:      rgba(255,255,255,0.075);
+  --border:      rgba(255,255,255,0.07);
+  --border-a:    rgba(56,189,248,0.3);
+  --txt:         #e8f0ff;
+  --txt2:        #6b82a8;
+  --txt3:        #2d3d5a;
+  --a:           #38bdf8;        /* sky-400 */
+  --a2:          #818cf8;        /* indigo-400 */
+  --warm:        #fb923c;
+  --green:       #34d399;
+  --red:         #f87171;
+  --glow-a:      rgba(56,189,248,0.10);
+  --glow-b:      rgba(129,140,248,0.10);
+  --shadow:      rgba(0,0,0,0.75);
+}
+[data-theme="light"] {
+  --bg:          #e4ecf8;
+  --bg2:         #edf4ff;
+  --bg3:         #f5f9ff;
+  --glass:       rgba(228,236,248,0.93);
+  --card:        rgba(255,255,255,0.65);
+  --card-h:      rgba(255,255,255,0.9);
+  --border:      rgba(0,0,0,0.065);
+  --border-a:    rgba(14,116,144,0.3);
+  --txt:         #0c1629;
+  --txt2:        #3d5070;
+  --txt3:        #8aa0c0;
+  --a:           #0e7490;
+  --a2:          #4f46e5;
+  --warm:        #c2410c;
+  --glow-a:      rgba(14,116,144,0.09);
+  --glow-b:      rgba(79,70,229,0.09);
+  --shadow:      rgba(0,0,0,0.12);
+}
+
+/* ═══════════════════════════════════════════
+   RESET
+═══════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:var(--fs);scroll-behavior:smooth}
+body{
+  font-family:var(--ff-body);
+  background:var(--bg);
+  color:var(--txt);
+  min-height:100vh;
+  overflow-x:hidden;
+  transition:background .35s,color .3s;
+}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* ═══════════════════════════════════════════
+   SCENE
+═══════════════════════════════════════════ */
+#scene{
+  position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse 120% 80% at 70% -10%, rgba(56,189,248,.07) 0%, transparent 55%),
+             radial-gradient(ellipse 80% 60% at -10% 80%, rgba(129,140,248,.06) 0%, transparent 50%),
+             var(--bg);
+  transition:background 1.8s;
+}
+#canvas{position:fixed;inset:0;z-index:0;opacity:.55;pointer-events:none}
+
+/* ═══════════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════════ */
+#app{position:relative;z-index:1;max-width:1440px;margin:0 auto;padding:1.4rem 1.5rem;min-height:100vh}
+
+/* ═══════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════ */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1.6rem;flex-wrap:wrap;gap:.8rem;
+}
+.brand{
+  font-family:var(--ff-display);
+  font-size:1.55rem;font-weight:800;letter-spacing:-.03em;
+  background:linear-gradient(135deg, var(--a) 0%, var(--a2) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.brand-sub{font-size:.6rem;font-family:var(--ff-mono);color:var(--txt3);letter-spacing:.12em;text-transform:uppercase;margin-top:-.15rem}
+.hdr-right{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap}
+.live-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:.28rem .85rem;border-radius:100px;
+  border:1px solid var(--border);background:var(--card);
+  font-family:var(--ff-mono);font-size:.58rem;color:var(--txt3);
+  backdrop-filter:blur(14px);
+}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2.2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.75)}}
+
+.ibtn{
+  width:38px;height:38px;border-radius:10px;
+  border:1px solid var(--border);background:var(--card);
+  color:var(--txt2);cursor:pointer;font-size:.95rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;backdrop-filter:blur(14px);
+}
+.ibtn:hover{background:var(--card-h);color:var(--a);border-color:var(--border-a);transform:translateY(-1px)}
+.ibtn.groq{background:linear-gradient(135deg,rgba(56,189,248,.15),rgba(129,140,248,.15));border-color:var(--border-a);color:var(--a)}
+.ibtn.groq:hover{background:linear-gradient(135deg,rgba(56,189,248,.28),rgba(129,140,248,.28))}
+
+/* ═══════════════════════════════════════════
+   GRID
+═══════════════════════════════════════════ */
+.grid{display:grid;grid-template-columns:2.2fr 1fr 1fr;gap:1rem}
+@media(max-width:1080px){.grid{grid-template-columns:1fr 1fr}}
+@media(max-width:660px){.grid{grid-template-columns:1fr}}
+
+/* ═══════════════════════════════════════════
+   CARD BASE
+═══════════════════════════════════════════ */
+.card{
+  background:var(--card);backdrop-filter:blur(24px);
+  border:1px solid var(--border);border-radius:20px;
+  padding:1.35rem 1.45rem;
+  transition:background .3s,border-color .3s;
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(135deg,rgba(255,255,255,.025) 0%,transparent 60%);
+  pointer-events:none;
+}
+.card:hover{background:var(--card-h)}
+.clabel{
+  font-family:var(--ff-mono);font-size:.58rem;
+  text-transform:uppercase;letter-spacing:.15em;
+  color:var(--txt3);margin-bottom:.85rem;
+}
+
+/* ═══════════════════════════════════════════
+   HERO CARD
+═══════════════════════════════════════════ */
+.hero{grid-column:1/3;min-height:220px}
+@media(max-width:660px){.hero{grid-column:1}}
+.hero-bg-emoji{
+  position:absolute;right:-5px;top:-22px;
+  font-size:9.5rem;opacity:.11;line-height:1;
+  pointer-events:none;transition:all 1.4s;
+  filter:blur(2px) saturate(0.6);
+}
+.hero-temp{
+  font-family:var(--ff-display);
+  font-size:clamp(3rem,7vw,5.2rem);
+  font-weight:800;line-height:1;letter-spacing:-.045em;
+}
+.hero-temp sup{font-size:1.25rem;font-weight:400;color:var(--txt2);vertical-align:super;margin-left:4px}
+.hero-cond{
+  font-size:1.1rem;font-weight:500;
+  background:linear-gradient(90deg,var(--a),var(--a2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  margin-top:.3rem;
+}
+.hero-loc{
+  display:flex;align-items:center;gap:.4rem;
+  color:var(--txt2);font-size:.82rem;margin-top:.4rem;
+}
+.hero-meta{display:flex;gap:1.1rem;margin-top:1.15rem;flex-wrap:wrap}
+.hm{display:flex;align-items:center;gap:.38rem;font-size:.78rem;color:var(--txt2)}
+.hm b{color:var(--txt);font-weight:600}
+.upd-tag{
+  position:absolute;bottom:1rem;right:1.35rem;
+  font-family:var(--ff-mono);font-size:.56rem;color:var(--txt3);
+}
+
+/* ═══════════════════════════════════════════
+   GROQ AI CARD
+═══════════════════════════════════════════ */
+.groq-card{display:flex;flex-direction:column;gap:.85rem}
+.groq-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:linear-gradient(135deg,var(--glow-a),var(--glow-b));
+  border:1px solid var(--border-a);border-radius:100px;
+  padding:.28rem .8rem;font-size:.62rem;
+  font-family:var(--ff-mono);color:var(--a);width:fit-content;
+}
+.groq-badge::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--a);animation:pulse 2s infinite}
+.groq-tip{
+  font-size:.84rem;line-height:1.65;color:var(--txt2);
+  flex:1;min-height:48px;
+}
+.groq-tip b{color:var(--txt)}
+.open-chat{
+  width:100%;padding:.68rem;border-radius:12px;
+  border:1px solid var(--border-a);
+  background:linear-gradient(135deg,var(--glow-a),var(--glow-b));
+  color:var(--a);font-family:var(--ff-body);font-size:.8rem;font-weight:600;
+  cursor:pointer;transition:all .22s;
+  display:flex;align-items:center;justify-content:center;gap:.5rem;
+}
+.open-chat:hover{
+  background:linear-gradient(135deg,var(--a),var(--a2));
+  color:#fff;border-color:transparent;transform:translateY(-1px);
+  box-shadow:0 8px 24px rgba(56,189,248,.25);
+}
+
+/* ═══════════════════════════════════════════
+   HOURLY
+═══════════════════════════════════════════ */
+.hourly-card{grid-column:1/-1}
+.hscroll{display:flex;gap:.6rem;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.hscroll::-webkit-scrollbar{display:none}
+.hitem{
+  flex-shrink:0;display:flex;flex-direction:column;align-items:center;
+  gap:.32rem;padding:.8rem .85rem;border-radius:14px;
+  border:1px solid var(--border);background:var(--card);
+  min-width:66px;cursor:default;transition:all .2s;
+}
+.hitem.now{
+  background:linear-gradient(145deg,var(--glow-a),var(--glow-b));
+  border-color:var(--border-a);
+}
+.ht-time{font-family:var(--ff-mono);font-size:.57rem;color:var(--txt3)}
+.ht-icon{font-size:1.3rem}
+.ht-temp{font-size:.8rem;font-weight:700}
+.ht-rain{font-size:.57rem;color:var(--a);font-family:var(--ff-mono)}
+
+/* ═══════════════════════════════════════════
+   7-DAY FORECAST
+═══════════════════════════════════════════ */
+.fc-card{grid-column:1/3}
+@media(max-width:660px){.fc-card{grid-column:1}}
+.frow{
+  display:flex;align-items:center;gap:.7rem;
+  padding:.6rem 0;border-bottom:1px solid var(--border);
+}
+.frow:last-child{border-bottom:none}
+.fday{font-weight:600;font-size:.85rem;min-width:54px;font-family:var(--ff-display)}
+.ficon{font-size:1.25rem}
+.fdesc{font-size:.72rem;color:var(--txt2);flex:1;text-transform:capitalize}
+.frain-pct{font-size:.62rem;color:var(--a);font-family:var(--ff-mono);min-width:32px;text-align:right}
+.frange{display:flex;align-items:center;gap:.55rem;font-family:var(--ff-mono);font-size:.72rem}
+.flo{color:var(--txt3)}
+.fhi{color:var(--txt);font-weight:700}
+.fbar{width:55px;height:3px;border-radius:2px;background:var(--border);overflow:hidden}
+.fbar-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--a),var(--warm))}
+
+/* ═══════════════════════════════════════════
+   STATS
+═══════════════════════════════════════════ */
+.stats-g{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
+.sitem{
+  padding:.8rem;border-radius:13px;
+  background:var(--bg2);border:1px solid var(--border);
+}
+.si-icon{font-size:1.1rem;margin-bottom:.28rem}
+.si-label{font-size:.57rem;font-family:var(--ff-mono);text-transform:uppercase;letter-spacing:.1em;color:var(--txt3)}
+.si-val{font-size:1rem;font-weight:700;margin-top:.1rem}
+
+/* ═══════════════════════════════════════════
+   SUN ARC
+═══════════════════════════════════════════ */
+.sun-svg{width:100%;height:82px}
+.sun-times{
+  display:flex;justify-content:space-between;
+  font-family:var(--ff-mono);font-size:.65rem;color:var(--txt2);margin-top:.4rem;
+}
+
+/* ═══════════════════════════════════════════
+   MAP
+═══════════════════════════════════════════ */
+.map-card{grid-column:1/3}
+@media(max-width:660px){.map-card{grid-column:1}}
+.map-box{
+  height:155px;border-radius:13px;background:var(--bg2);
+  border:1px solid var(--border);position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.map-grid-lines{
+  position:absolute;inset:0;opacity:.5;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),
+                   linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:26px 26px;
+}
+.map-dot{
+  width:12px;height:12px;border-radius:50%;
+  background:var(--a);position:absolute;left:50%;top:45%;
+  transform:translate(-50%,-50%);z-index:2;
+  box-shadow:0 0 0 3px rgba(56,189,248,.25);
+}
+.map-ping{
+  position:absolute;left:50%;top:45%;border-radius:50%;
+  border:1.5px solid var(--a);opacity:0;
+  animation:ping 2.8s ease-out infinite;
+}
+@keyframes ping{
+  0%{width:12px;height:12px;opacity:.7;transform:translate(-50%,-50%)}
+  100%{width:130px;height:130px;opacity:0;transform:translate(-50%,-50%)}
+}
+.map-pin-label{
+  position:absolute;bottom:9px;left:50%;transform:translateX(-50%);
+  font-family:var(--ff-mono);font-size:.6rem;color:var(--txt3);white-space:nowrap;
+}
+
+/* ═══════════════════════════════════════════
+   AQI / UV CARD
+═══════════════════════════════════════════ */
+.aqi-bar-wrap{margin-top:.5rem}
+.aqi-track{height:7px;border-radius:4px;background:linear-gradient(90deg,var(--green),#fbbf24,var(--red));position:relative;margin-top:.5rem}
+.aqi-thumb{
+  position:absolute;top:-4px;width:15px;height:15px;border-radius:50%;
+  background:var(--txt);border:2px solid var(--bg);
+  box-shadow:0 2px 8px var(--shadow);transform:translateX(-50%);
+  transition:left .6s;
+}
+.aqi-labels{display:flex;justify-content:space-between;font-family:var(--ff-mono);font-size:.55rem;color:var(--txt3);margin-top:.4rem}
+
+/* ═══════════════════════════════════════════
+   OVERLAY
+═══════════════════════════════════════════ */
+#overlay{
+  position:fixed;inset:0;z-index:40;
+  background:rgba(4,8,18,.6);backdrop-filter:blur(6px);
+  opacity:0;pointer-events:none;transition:opacity .3s;
+}
+#overlay.on{opacity:1;pointer-events:all}
+
+/* ═══════════════════════════════════════════
+   CHAT PANEL  — Groq-powered
+═══════════════════════════════════════════ */
+#chat{
+  position:fixed;right:-440px;top:0;bottom:0;width:420px;z-index:50;
+  background:var(--glass);backdrop-filter:blur(32px);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  transition:right .38s cubic-bezier(.4,0,.2,1);
+  box-shadow:-20px 0 60px var(--shadow);
+}
+#chat.open{right:0}
+@media(max-width:480px){#chat{width:100%;right:-100%}}
+
+.chat-hdr{
+  padding:1.1rem 1.35rem;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.chat-hdr-l{display:flex;align-items:center;gap:.7rem}
+.chat-title{font-family:var(--ff-display);font-weight:700;font-size:.88rem}
+.chat-sub{font-size:.58rem;color:var(--txt3);font-family:var(--ff-mono)}
+.model-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  background:linear-gradient(135deg,var(--glow-a),var(--glow-b));
+  border:1px solid var(--border-a);border-radius:6px;
+  padding:.18rem .55rem;font-size:.56rem;font-family:var(--ff-mono);color:var(--a);
+}
+.xbtn{
+  width:28px;height:28px;border-radius:8px;border:1px solid var(--border);
+  background:var(--card);color:var(--txt2);cursor:pointer;font-size:.85rem;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;
+}
+.xbtn:hover{background:var(--card-h);color:var(--txt)}
+
+.chat-msgs{flex:1;overflow-y:auto;padding:1rem 1.1rem;display:flex;flex-direction:column;gap:.85rem}
+.cmsg{display:flex;gap:.6rem;animation:msgIn .28s ease}
+@keyframes msgIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+.cmsg.user{flex-direction:row-reverse}
+.avt{
+  width:28px;height:28px;border-radius:9px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:.78rem;
+}
+.avt.ai{
+  background:linear-gradient(135deg,var(--glow-a),var(--glow-b));
+  border:1px solid var(--border-a);color:var(--a);
+}
+.avt.user{background:var(--bg3);border:1px solid var(--border)}
+.bbl{max-width:84%;padding:.65rem .9rem;font-size:.82rem;line-height:1.65;border-radius:14px}
+.cmsg.ai  .bbl{background:var(--card);border:1px solid var(--border);border-radius:4px 14px 14px 14px}
+.cmsg.user .bbl{background:linear-gradient(135deg,var(--a),var(--a2));color:#fff;border-radius:14px 4px 14px 14px}
+.mtime{font-size:.55rem;color:var(--txt3);margin-top:.28rem;font-family:var(--ff-mono)}
+.cmsg.user .mtime{text-align:right}
+
+/* Weather card inside chat */
+.wx-card-mini{
+  background:linear-gradient(135deg,var(--glow-a),var(--glow-b));
+  border:1px solid var(--border-a);border-radius:12px;
+  padding:.7rem .9rem;margin-top:.4rem;font-size:.78rem;
+}
+.wx-card-mini .wx-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem}
+.wx-card-mini .wx-row:last-child{margin-bottom:0}
+.wx-card-mini .wx-label{color:var(--txt2);font-size:.7rem}
+.wx-card-mini .wx-val{font-weight:600;color:var(--txt)}
+
+/* Typing dots */
+.typing-b{display:flex;gap:4px;padding:.65rem .9rem;align-items:center}
+.td{width:5px;height:5px;border-radius:50%;background:var(--txt3);animation:td 1.4s infinite}
+.td:nth-child(2){animation-delay:.22s}.td:nth-child(3){animation-delay:.44s}
+@keyframes td{0%,60%,100%{transform:translateY(0);opacity:.35}30%{transform:translateY(-7px);opacity:1}}
+
+.chat-foot{padding:.9rem 1.1rem;border-top:1px solid var(--border)}
+.quick-row{display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.65rem}
+.qbtn{
+  padding:.27rem .68rem;border-radius:100px;
+  border:1px solid var(--border);background:var(--card);
+  color:var(--txt2);font-size:.67rem;cursor:pointer;transition:all .2s;white-space:nowrap;
+}
+.qbtn:hover{border-color:var(--border-a);color:var(--a);background:var(--glow-a)}
+
+.inp-row{display:flex;gap:.55rem;align-items:flex-end}
+.chat-inp{
+  flex:1;padding:.65rem .9rem;border-radius:12px;
+  border:1px solid var(--border);background:var(--card);
+  color:var(--txt);font-family:var(--ff-body);font-size:.82rem;
+  resize:none;max-height:88px;outline:none;transition:border-color .2s;
+}
+.chat-inp:focus{border-color:var(--border-a)}
+.chat-inp::placeholder{color:var(--txt3)}
+.send-btn{
+  width:38px;height:38px;border-radius:11px;border:none;
+  background:linear-gradient(135deg,var(--a),var(--a2));
+  color:#fff;cursor:pointer;font-size:.95rem;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .2s;flex-shrink:0;
+  box-shadow:0 4px 14px rgba(56,189,248,.3);
+}
+.send-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(56,189,248,.4)}
+.send-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* Groq credit */
+.groq-credit{
+  display:flex;align-items:center;justify-content:center;gap:.4rem;
+  padding:.45rem;border-top:1px solid var(--border);
+  font-family:var(--ff-mono);font-size:.55rem;color:var(--txt3);
+}
+.groq-credit span{color:var(--a)}
+
+/* ═══════════════════════════════════════════
+   SETTINGS PANEL
+═══════════════════════════════════════════ */
+#settings{
+  position:fixed;left:-340px;top:0;bottom:0;width:320px;z-index:50;
+  background:var(--glass);backdrop-filter:blur(32px);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  transition:left .38s cubic-bezier(.4,0,.2,1);
+  box-shadow:20px 0 60px var(--shadow);
+}
+#settings.open{left:0}
+.set-hdr{padding:1.1rem 1.35rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.set-title{font-family:var(--ff-display);font-weight:700;font-size:.88rem}
+.set-body{flex:1;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:1.2rem}
+.sg label{display:block;font-size:.58rem;font-family:var(--ff-mono);text-transform:uppercase;letter-spacing:.12em;color:var(--txt3);margin-bottom:.6rem}
+.orow{display:flex;gap:.4rem;flex-wrap:wrap}
+.opt{
+  padding:.42rem .82rem;border-radius:10px;
+  border:1px solid var(--border);background:var(--card);
+  color:var(--txt2);font-family:var(--ff-body);font-size:.75rem;cursor:pointer;transition:all .2s;
+}
+.opt:hover,.opt.on{background:var(--glow-a);border-color:var(--border-a);color:var(--a)}
+.sdiv{height:1px;background:var(--border)}
+.utog{display:flex;background:var(--bg2);border-radius:11px;padding:3px;gap:3px}
+.utog button{
+  flex:1;padding:.38rem;border-radius:8px;border:none;background:transparent;
+  color:var(--txt3);font-family:var(--ff-mono);font-size:.75rem;cursor:pointer;transition:all .2s;
+}
+.utog button.on{background:linear-gradient(135deg,var(--a),var(--a2));color:#fff}
+.sz-sl{width:100%;appearance:none;height:3px;background:var(--border);border-radius:2px;outline:none}
+.sz-sl::-webkit-slider-thumb{appearance:none;width:14px;height:14px;border-radius:50%;background:var(--a);cursor:pointer}
+.szrow{display:flex;justify-content:space-between;font-size:.58rem;color:var(--txt3);font-family:var(--ff-mono);margin-top:.32rem}
+
+/* API key input */
+.api-input{
+  width:100%;padding:.55rem .75rem;border-radius:10px;
+  border:1px solid var(--border);background:var(--card);
+  color:var(--txt);font-family:var(--ff-mono);font-size:.7rem;
+  outline:none;transition:border-color .2s;
+}
+.api-input:focus{border-color:var(--border-a)}
+.api-input::placeholder{color:var(--txt3)}
+.api-save-btn{
+  margin-top:.5rem;width:100%;padding:.45rem;border-radius:9px;
+  border:1px solid var(--border-a);background:var(--glow-a);
+  color:var(--a);font-size:.72rem;cursor:pointer;
+  font-family:var(--ff-body);font-weight:600;transition:all .2s;
+}
+.api-save-btn:hover{background:var(--a);color:#fff}
+.api-status{font-size:.6rem;font-family:var(--ff-mono);margin-top:.4rem;color:var(--txt3)}
+.api-status.ok{color:var(--green)}
+.api-status.err{color:var(--red)}
+</style>
 </head>
 <body>
-  <div class="weather-info">
-    <h1>Current Weather</h1>
-    <p id="location">Loading location...</p>
-    <p id="temperature">Loading temperature...</p>
-    <p id="condition">Loading condition...</p>
+
+<div id="scene"></div>
+<canvas id="canvas"></canvas>
+<div id="overlay"></div>
+
+<!-- ═══ SETTINGS ═══ -->
+<div id="settings">
+  <div class="set-hdr">
+    <span class="set-title">⚙ Settings</span>
+    <button class="xbtn" onclick="closeSettings()">✕</button>
   </div>
-  <style>
-    body {
-  margin: 0;
-  padding: 0;
-  background-size: cover;
-  background-position: center;
-  font-family: Arial, sans-serif;
-  color: white;
-  text-align: center;
-  height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+  <div class="set-body">
 
-.weather-info {
-  background: rgba(0, 0, 0, 0.5);
-  padding: 2rem;
-  border-radius: 1rem;
-  box-shadow: 0 0 10px rgba(0,0,0,0.5);
-}
+    <div class="sg">
+      <label>Groq API Key</label>
+      <input class="api-input" id="api-key-input" type="password" placeholder="gsk_xxxxxxxxxxxxxxxxxxxxxxxx">
+      <button class="api-save-btn" onclick="saveApiKey()">Save & Test Key</button>
+      <div class="api-status" id="api-status">No key saved yet</div>
+    </div>
 
-  </style>
+    <div class="sdiv"></div>
+    <div class="sg">
+      <label>Theme</label>
+      <div class="orow" id="theme-opts">
+        <button class="opt on" onclick="setTheme('dark',this)">🌙 Dark</button>
+        <button class="opt"    onclick="setTheme('light',this)">☀️ Light</button>
+      </div>
+    </div>
 
-  <script >
-    const apiKey = "ea4a6c34ec9ce8afa5118dc2ea6aa30c"; // Replace with your OpenWeatherMap API key
+    <div class="sdiv"></div>
+    <div class="sg">
+      <label>Temperature</label>
+      <div class="utog">
+        <button class="on" id="u-c" onclick="setUnit('C',this)">°C</button>
+        <button            id="u-f" onclick="setUnit('F',this)">°F</button>
+      </div>
+    </div>
 
-// Map weather condition to image file names
-const weatherImages = {
-  Clear: "sunny.jpg",
-  Clouds: "clouds.jpg",
-  Rain: "rain.jpg",
-  Mist: "mist.jpg",
-  Thunderstorm: "thunderstorm.jpg",
-  Snow: "snow.jpg",
-  Drizzle: "rain.jpg", // optional mapping for light rain
-  Haze: "mist.jpg",
-  Fog: "mist.jpg",
-  Smoke: "mist.jpg",
-  Dust: "mist.jpg"
+    <div class="sdiv"></div>
+    <div class="sg">
+      <label>Font Size</label>
+      <input type="range" class="sz-sl" min="13" max="20" value="15" oninput="setFontSz(this.value)">
+      <div class="szrow"><span>S</span><span id="sz-lbl">15px</span><span>XL</span></div>
+    </div>
+
+    <div class="sdiv"></div>
+    <div class="sg">
+      <label>Font Style</label>
+      <div class="orow" id="font-opts">
+        <button class="opt on" onclick="setFont('DM Sans',this)">DM Sans</button>
+        <button class="opt"    onclick="setFont('Georgia',this)" style="font-family:Georgia">Serif</button>
+        <button class="opt"    onclick="setFont('JetBrains Mono',this)" style="font-family:'JetBrains Mono'">Mono</button>
+      </div>
+    </div>
+
+    <div class="sdiv"></div>
+    <div class="sg">
+      <label>Language</label>
+      <div class="orow" id="lang-opts">
+        <button class="opt on" onclick="setLang('en',this)">EN</button>
+        <button class="opt"    onclick="setLang('sw',this)">SW</button>
+        <button class="opt"    onclick="setLang('fr',this)">FR</button>
+        <button class="opt"    onclick="setLang('es',this)">ES</button>
+        <button class="opt"    onclick="setLang('de',this)">DE</button>
+      </div>
+    </div>
+
+    <div class="sdiv"></div>
+    <div class="sg">
+      <label>Groq Model</label>
+      <div class="orow" id="model-opts">
+        <button class="opt on" onclick="setModel('llama-3.3-70b-versatile',this)">Llama 3.3 70B</button>
+        <button class="opt"    onclick="setModel('llama-3.1-8b-instant',this)">Llama 3.1 8B</button>
+        <button class="opt"    onclick="setModel('mixtral-8x7b-32768',this)">Mixtral 8×7B</button>
+        <button class="opt"    onclick="setModel('gemma2-9b-it',this)">Gemma 2 9B</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ CHAT ═══ -->
+<div id="chat">
+  <div class="chat-hdr">
+    <div class="chat-hdr-l">
+      <div class="groq-badge">⚡ Groq AI</div>
+      <div>
+        <div class="chat-title">Zephyr Assistant</div>
+        <div class="chat-sub" id="model-label">llama-3.3-70b-versatile</div>
+      </div>
+    </div>
+    <button class="xbtn" onclick="closeChat()">✕</button>
+  </div>
+
+  <div class="chat-msgs" id="chat-msgs"></div>
+
+  <div class="chat-foot">
+    <div class="quick-row">
+      <button class="qbtn" onclick="sendQ('What should I wear today?')">👕 Outfit?</button>
+      <button class="qbtn" onclick="sendQ('Is it safe to run outside now?')">🏃 Run?</button>
+      <button class="qbtn" onclick="sendQ('Will it rain today or tomorrow?')">☂️ Rain?</button>
+      <button class="qbtn" onclick="sendQ('Give me the full 5-day forecast')">📅 Forecast</button>
+      <button class="qbtn" onclick="sendQ('What is the UV index and should I use sunscreen?')">🌞 UV?</button>
+      <button class="qbtn" onclick="sendQ('Best time to go out today?')">🕐 Best time?</button>
+      <button class="qbtn" onclick="sendQ('Is it a good day for farming or gardening?')">🌱 Farm/Garden?</button>
+    </div>
+    <div class="inp-row">
+      <textarea class="chat-inp" id="chat-inp"
+        placeholder="Ask anything — forecast, outfits, activities…"
+        rows="1" onkeydown="chatKey(event)" oninput="autoH(this)"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMsg()">➤</button>
+    </div>
+  </div>
+  <div class="groq-credit">Powered by <span>Groq</span> — world's fastest AI inference</div>
+</div>
+
+<!-- ═══ MAIN APP ═══ -->
+<div id="app">
+  <header>
+    <div>
+      <div class="brand">ZEPHYR</div>
+      <div class="brand-sub">Groq Weather Intelligence</div>
+    </div>
+    <div class="hdr-right">
+      <div class="live-pill"><div class="live-dot"></div>LIVE · Nairobi, KE</div>
+      <button class="ibtn" onclick="openSettings()" title="Settings">⚙️</button>
+      <button class="ibtn groq" onclick="openChat()" title="Groq AI Chat">⚡</button>
+    </div>
+  </header>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+//  LIVE DATA  (fetched 2026-03-27, Nairobi KE)
+// ════════════════════════════════════════════
+const W = {
+  city:"Nairobi", country:"Kenya", lat:-1.29, lon:36.82,
+  tempC:17.2,  feelsC:16,
+  condMain:"Clouds", condText:"Mostly cloudy",
+  humidity:74, windKph:13, pressureHpa:1014, visKm:10,
+  uvIndex:5, dewPointC:12,
+  sunriseH:6, sunriseM:18, sunsetH:18, sunsetM:33,
+  hourly:[
+    {h:"Now",    icon:"☁️",  tC:17, rain:50},
+    {h:"15:00",  icon:"🌧️",  tC:16, rain:60},
+    {h:"18:00",  icon:"🌧️",  tC:15, rain:55},
+    {h:"21:00",  icon:"🌦️",  tC:14, rain:35},
+    {h:"00:00",  icon:"🌫️",  tC:13, rain:20},
+    {h:"03:00",  icon:"🌫️",  tC:12, rain:15},
+    {h:"06:00",  icon:"⛅",  tC:14, rain:20},
+    {h:"09:00",  icon:"🌤️",  tC:17, rain:25},
+    {h:"12:00",  icon:"⛅",  tC:19, rain:30},
+  ],
+  forecast:[
+    {day:"Today", icon:"☁️",  desc:"Mostly cloudy",   lo:13, hi:22, rain:50},
+    {day:"Sat",   icon:"🌦️",  desc:"Showers likely",  lo:13, hi:24, rain:35},
+    {day:"Sun",   icon:"⛅",  desc:"Partly cloudy",   lo:14, hi:25, rain:25},
+    {day:"Mon",   icon:"🌤️",  desc:"Mostly sunny",    lo:14, hi:25, rain:25},
+    {day:"Tue",   icon:"🌦️",  desc:"Chance of rain",  lo:13, hi:23, rain:40},
+  ]
 };
 
-function setWeatherBackground(condition) {
-  const imageFile = weatherImages[condition] || "clear.jpg"; // Default image
-  document.body.style.backgroundImage = `url('images/${imageFile}')`;
-}
+// ════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════
+let unit='C', lang='en', busy=false;
+let groqKey = localStorage.getItem('zephyr_groq_key') || '';
+let groqModel = 'llama-3.3-70b-versatile';
+let chatHistory = [];
 
-function displayWeather(data) {
-  const temp = data.main.temp;
-  const condition = data.weather[0].main;
-  const city = data.name;
+const TR = {
+  en:{feels:"Feels like",hum:"Humidity",wind:"Wind",pres:"Pressure",vis:"Visibility",
+      uv:"UV Index",dew:"Dew Point",rise:"Sunrise",set:"Sunset",
+      today:"Today",fc:"5-Day Forecast",hr:"Hourly",stats:"Conditions",
+      sun:"Sun & Sky",map:"Location",chat:"Chat with Groq AI"},
+  sw:{feels:"Hisi",hum:"Unyevu",wind:"Upepo",pres:"Shinikizo",vis:"Mwonekano",
+      uv:"Kiwango UV",dew:"Umande",rise:"Mapambazuko",set:"Machweo",
+      today:"Leo",fc:"Utabiri 5-Siku",hr:"Kwa Saa",stats:"Hali",
+      sun:"Jua",map:"Mahali",chat:"Zungumza na Groq AI"},
+  fr:{feels:"Ressenti",hum:"Humidité",wind:"Vent",pres:"Pression",vis:"Visibilité",
+      uv:"Indice UV",dew:"Point de rosée",rise:"Lever",set:"Coucher",
+      today:"Aujourd'hui",fc:"Prévisions 5j",hr:"Horaire",stats:"Conditions",
+      sun:"Soleil",map:"Localisation",chat:"Chat Groq AI"},
+  es:{feels:"Sensación",hum:"Humedad",wind:"Viento",pres:"Presión",vis:"Visibilidad",
+      uv:"Índice UV",dew:"Punto de rocío",rise:"Amanecer",set:"Atardecer",
+      today:"Hoy",fc:"Pronóstico 5 días",hr:"Por hora",stats:"Condiciones",
+      sun:"Sol",map:"Ubicación",chat:"Chat con Groq AI"},
+  de:{feels:"Gefühlt",hum:"Luftfeuchte",wind:"Wind",pres:"Druck",vis:"Sicht",
+      uv:"UV-Index",dew:"Taupunkt",rise:"Aufgang",set:"Untergang",
+      today:"Heute",fc:"5-Tage-Prognose",hr:"Stündlich",stats:"Bedingungen",
+      sun:"Sonne",map:"Standort",chat:"Mit Groq AI chatten"},
+};
+const t = k => (TR[lang]||TR.en)[k]||k;
 
-  document.getElementById("location").textContent = `Location: ${city}`;
-  document.getElementById("temperature").textContent = `Temperature: ${temp}°C`;
-  document.getElementById("condition").textContent = `Condition: ${condition}`;
+const toC = v => unit==='C' ? +v.toFixed(1) : +(v*9/5+32).toFixed(1);
+const sym = () => unit==='C'?'°C':'°F';
+const wnd = kph => unit==='C'?`${kph} km/h`:`${Math.round(kph*.621)} mph`;
+const CE  = {Clear:'☀️',Clouds:'☁️',Rain:'🌧️',Drizzle:'🌦️',Thunderstorm:'⛈️',Snow:'❄️',Mist:'🌫️',Fog:'🌫️',Haze:'🌫️'};
+const ce  = c => CE[c]||'🌤️';
+const pad = n => String(n).padStart(2,'0');
 
-  setWeatherBackground(condition);
-}
+// ════════════════════════════════════════════
+//  CANVAS PARTICLES
+// ════════════════════════════════════════════
+(function initCanvas(){
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+  const resize = () => { canvas.width=innerWidth; canvas.height=innerHeight; };
+  resize(); window.addEventListener('resize', resize);
 
-function fetchWeather(lat, lon) {
-  const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${apiKey}`;
-  fetch(url)
-    .then(response => response.json())
-    .then(data => displayWeather(data))
-    .catch(err => console.error("Weather fetch error:", err));
-}
+  function spawnParticles(){
+    particles = [];
+    const cond = W.condMain;
+    let count=18, style='glow';
+    if(cond==='Rain'||cond==='Drizzle'){count=60;style='rain';}
+    else if(cond==='Snow'){count=35;style='snow';}
+    else if(cond==='Thunderstorm'){count=70;style='thunder';}
+    else if(cond==='Clear'){count=10;style='glow';}
+    for(let i=0;i<count;i++){
+      particles.push({
+        x:Math.random()*canvas.width, y:Math.random()*canvas.height,
+        vx:(Math.random()-.5)*(style==='rain'?.5:style==='thunder'?2:.3),
+        vy:style==='rain'?Math.random()*4+2:style==='thunder'?Math.random()*5+3:-(Math.random()*.4+.1),
+        size:style==='rain'?Math.random()*1+.5:style==='snow'?Math.random()*3+2:Math.random()*2+1,
+        opacity:Math.random()*.5+.1,
+        style, life:Math.random()
+      });
+    }
+  }
+  spawnParticles();
 
-function getLocationAndWeather() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        fetchWeather(position.coords.latitude, position.coords.longitude);
-      },
-      (error) => {
-        alert("Location access denied. Please enable it to fetch weather.");
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{
+      ctx.save();
+      if(p.style==='rain'){
+        ctx.globalAlpha=p.opacity*.7;
+        ctx.strokeStyle='rgba(147,197,253,0.6)';
+        ctx.lineWidth=p.size;
+        ctx.beginPath();
+        ctx.moveTo(p.x,p.y);
+        ctx.lineTo(p.x-1,p.y-8);
+        ctx.stroke();
+      } else if(p.style==='snow'){
+        ctx.globalAlpha=p.opacity;
+        ctx.fillStyle='rgba(255,255,255,0.8)';
+        ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();
+      } else if(p.style==='thunder'){
+        ctx.globalAlpha=p.opacity*.5;
+        ctx.strokeStyle='rgba(196,160,255,0.5)';
+        ctx.lineWidth=p.size*.5;
+        ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+2,p.y-6);ctx.stroke();
+      } else {
+        ctx.globalAlpha=p.opacity*.4;
+        const grad=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.size*6);
+        grad.addColorStop(0,'rgba(56,189,248,0.3)');
+        grad.addColorStop(1,'transparent');
+        ctx.fillStyle=grad;
+        ctx.beginPath();ctx.arc(p.x,p.y,p.size*6,0,Math.PI*2);ctx.fill();
       }
-    );
-  } else {
-    alert("Geolocation is not supported by your browser.");
+      ctx.restore();
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.y>canvas.height+10){p.y=-10;p.x=Math.random()*canvas.width;}
+      if(p.y<-10){p.y=canvas.height+10;}
+      if(p.x<-10)p.x=canvas.width+10;
+      if(p.x>canvas.width+10)p.x=-10;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ════════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════════
+function render(){
+  updateBg();
+  const now = new Date();
+  const ts  = now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const ds  = now.toLocaleDateString(lang==='sw'?'en':lang,{weekday:'long',month:'long',day:'numeric'});
+
+  const hourlyHTML = W.hourly.map((h,i)=>`
+    <div class="hitem ${i===0?'now':''}">
+      <div class="ht-time">${h.h}</div>
+      <div class="ht-icon">${h.icon}</div>
+      <div class="ht-temp">${toC(h.tC)}${sym()}</div>
+      <div class="ht-rain">💧${h.rain}%</div>
+    </div>`).join('');
+
+  const hiA=W.forecast.map(x=>x.hi), loA=W.forecast.map(x=>x.lo);
+  const gMax=Math.max(...hiA), gMin=Math.min(...loA);
+  const fcHTML = W.forecast.map((f,i)=>{
+    const w=gMax>gMin?((f.hi-gMin)/(gMax-gMin))*100:55;
+    return `<div class="frow">
+      <div class="fday">${i===0?t('today'):f.day}</div>
+      <div class="ficon">${f.icon}</div>
+      <div class="fdesc">${f.desc}</div>
+      <div class="frain-pct">💧${f.rain}%</div>
+      <div class="frange">
+        <span class="flo">${toC(f.lo)}${sym()}</span>
+        <div class="fbar"><div class="fbar-fill" style="width:${w}%"></div></div>
+        <span class="fhi">${toC(f.hi)}${sym()}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  const riseS = W.sunriseH*3600+W.sunriseM*60;
+  const setS  = W.sunsetH*3600+W.sunsetM*60;
+  const nowS  = now.getHours()*3600+now.getMinutes()*60;
+  const prog  = Math.min(1,Math.max(0,(nowS-riseS)/(setS-riseS)));
+  const sx=20+prog*160, sy=78-Math.sin(prog*Math.PI)*62;
+  const isUp  = prog>0&&prog<1;
+
+  const uvPct = Math.min(100,(W.uvIndex/11)*100);
+
+  document.getElementById('grid').innerHTML = `
+
+    <!-- HERO -->
+    <div class="card hero">
+      <div class="hero-bg-emoji">${ce(W.condMain)}</div>
+      <div class="clabel">${ds} · ${ts}</div>
+      <div class="hero-temp">${toC(W.tempC)}<sup>${sym()}</sup></div>
+      <div class="hero-cond">${W.condText}</div>
+      <div class="hero-loc">📍 ${W.city}, ${W.country}</div>
+      <div class="hero-meta">
+        <div class="hm">🌡️ ${t('feels')}: <b>${toC(W.feelsC)}${sym()}</b></div>
+        <div class="hm">💧 ${t('hum')}: <b>${W.humidity}%</b></div>
+        <div class="hm">🌬️ ${t('wind')}: <b>${wnd(W.windKph)}</b></div>
+        <div class="hm">👁️ ${t('vis')}: <b>${W.visKm} km</b></div>
+      </div>
+      <div class="upd-tag">Updated ${ts}</div>
+    </div>
+
+    <!-- GROQ AI CARD -->
+    <div class="card groq-card">
+      <div class="groq-badge">⚡ Groq AI</div>
+      <div class="groq-tip" id="groq-tip">
+        <span style="color:var(--txt3);font-family:var(--ff-mono);font-size:.7rem">
+          ${groqKey ? 'Generating insight…' : 'Add your Groq API key in Settings ⚙️'}
+        </span>
+      </div>
+      <button class="open-chat" onclick="openChat()">⚡ ${t('chat')}</button>
+    </div>
+
+    <!-- HOURLY -->
+    <div class="card hourly-card">
+      <div class="clabel">${t('hr')}</div>
+      <div class="hscroll">${hourlyHTML}</div>
+    </div>
+
+    <!-- FORECAST -->
+    <div class="card fc-card">
+      <div class="clabel">${t('fc')}</div>
+      ${fcHTML}
+    </div>
+
+    <!-- STATS -->
+    <div class="card">
+      <div class="clabel">${t('stats')}</div>
+      <div class="stats-g">
+        <div class="sitem"><div class="si-icon">💧</div><div class="si-label">${t('hum')}</div><div class="si-val">${W.humidity}%</div></div>
+        <div class="sitem"><div class="si-icon">🌬️</div><div class="si-label">${t('wind')}</div><div class="si-val">${wnd(W.windKph)}</div></div>
+        <div class="sitem"><div class="si-icon">📊</div><div class="si-label">${t('pres')}</div><div class="si-val">${W.pressureHpa}<small style="font-size:.55rem;font-weight:400"> hPa</small></div></div>
+        <div class="sitem"><div class="si-icon">💦</div><div class="si-label">${t('dew')}</div><div class="si-val">${toC(W.dewPointC)}${sym()}</div></div>
+      </div>
+    </div>
+
+    <!-- UV / AQI -->
+    <div class="card">
+      <div class="clabel">${t('uv')} &amp; Air</div>
+      <div style="margin-bottom:.9rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.3rem">
+          <span style="font-size:.75rem;color:var(--txt2)">${t('uv')}</span>
+          <span style="font-size:1.1rem;font-weight:700">${W.uvIndex} <small style="font-size:.6rem;font-weight:400;color:var(--txt2)">/ 11</small></span>
+        </div>
+        <div class="aqi-track"><div class="aqi-thumb" style="left:${uvPct}%"></div></div>
+        <div class="aqi-labels"><span>Low</span><span>Mod</span><span>High</span></div>
+      </div>
+      <div style="font-size:.78rem;color:var(--txt2)">
+        Air Quality: <b style="color:var(--green)">Good</b>
+        <div style="font-size:.7rem;color:var(--txt3);margin-top:.2rem">AQI ~35 · PM2.5 normal</div>
+      </div>
+    </div>
+
+    <!-- SUN -->
+    <div class="card">
+      <div class="clabel">${t('sun')}</div>
+      <svg class="sun-svg" viewBox="0 0 200 86">
+        <defs>
+          <linearGradient id="sunGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="var(--a)" stop-opacity=".4"/>
+            <stop offset="100%" stop-color="var(--warm)" stop-opacity=".4"/>
+          </linearGradient>
+        </defs>
+        <path d="M 20 80 Q 100 12 180 80" fill="none" stroke="url(#sunGrad)" stroke-width="1.5" stroke-dasharray="5 4"/>
+        <circle cx="${sx}" cy="${sy}" r="${isUp?9:7}" fill="${isUp?'#fcd34d':'#475569'}" opacity="${isUp?.95:.5}">
+          ${isUp?'<animate attributeName="r" values="9;11;9" dur="3s" repeatCount="indefinite"/>':''}
+        </circle>
+        ${isUp?`<circle cx="${sx}" cy="${sy}" r="18" fill="none" stroke="#fcd34d" stroke-width="1" opacity=".2"/>`:''}
+      </svg>
+      <div class="sun-times">
+        <span>🌅 ${pad(W.sunriseH)}:${pad(W.sunriseM)}</span>
+        <span>🌇 ${pad(W.sunsetH)}:${pad(W.sunsetM)}</span>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div class="card map-card">
+      <div class="clabel">📍 ${t('map')}</div>
+      <div class="map-box">
+        <div class="map-grid-lines"></div>
+        <div class="map-ping"></div>
+        <div class="map-dot"></div>
+        <div class="map-pin-label">${W.city} · ${W.lat}°S, ${W.lon}°E</div>
+      </div>
+    </div>
+
+  `;
+
+  if(groqKey) loadGroqTip();
+}
+
+// ════════════════════════════════════════════
+//  BACKGROUND
+// ════════════════════════════════════════════
+const BG_D = {
+  Clouds:'radial-gradient(ellipse 120% 80% at 70% -10%, rgba(56,189,248,.07) 0%,transparent 55%),radial-gradient(ellipse 80% 60% at -10% 80%, rgba(129,140,248,.06) 0%,transparent 50%),#080c14',
+  Rain:'radial-gradient(ellipse 100% 70% at 50% -5%, rgba(56,189,248,.05) 0%,transparent 60%),#06090f',
+  Clear:'radial-gradient(ellipse 120% 80% at 60% -15%, rgba(251,191,36,.08) 0%,transparent 55%),radial-gradient(ellipse 60% 50% at -5% 70%, rgba(56,189,248,.05) 0%,transparent 50%),#080c14',
+  Thunderstorm:'radial-gradient(ellipse 90% 60% at 50% 0%, rgba(139,92,246,.08) 0%,transparent 55%),#04050c',
+  Snow:'radial-gradient(ellipse 100% 70% at 50% -5%, rgba(186,230,253,.06) 0%,transparent 55%),#080d16',
+  Mist:'radial-gradient(ellipse 120% 80% at 50% 20%, rgba(148,163,184,.07) 0%,transparent 60%),#090c12',
+};
+function updateBg(){
+  const isDark = document.documentElement.getAttribute('data-theme')!=='light';
+  document.getElementById('scene').style.background =
+    isDark ? (BG_D[W.condMain]||BG_D.Clouds)
+           : `linear-gradient(160deg,#b8d8f4 0%,#d8eeff 55%,#c4daf4 100%)`;
+}
+
+// ════════════════════════════════════════════
+//  GROQ API
+// ════════════════════════════════════════════
+function weatherContext(){
+  const fc = W.forecast.map(f=>`${f.day}: ${toC(f.lo)}-${toC(f.hi)}${sym()}, ${f.desc}, ${f.rain}% rain`).join(' | ');
+  return `Location: ${W.city}, Kenya. Current: ${toC(W.tempC)}${sym()}, feels ${toC(W.feelsC)}${sym()}, ${W.condText}. Humidity ${W.humidity}%, wind ${wnd(W.windKph)}, pressure ${W.pressureHpa}hPa, visibility ${W.visKm}km, UV index ${W.uvIndex}, dew point ${toC(W.dewPointC)}${sym()}. Sunrise 06:18, Sunset 18:33. 5-day forecast: ${fc}.`;
+}
+
+async function groqCall(messages, system, maxTokens=350){
+  if(!groqKey) throw new Error('No API key');
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':`Bearer ${groqKey}`},
+    body:JSON.stringify({
+      model: groqModel,
+      max_tokens: maxTokens,
+      temperature: 0.7,
+      messages:[
+        {role:'system', content: system},
+        ...messages
+      ]
+    })
+  });
+  if(!res.ok){
+    const err = await res.json().catch(()=>({}));
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+async function loadGroqTip(){
+  const el = document.getElementById('groq-tip');
+  if(!el||!groqKey) return;
+  try{
+    const sys = `You are a weather assistant. Give ONE concise sentence (max 18 words) outfit or activity tip for the weather. No preamble, no label, just the tip.`;
+    const txt = await groqCall([{role:'user',content:weatherContext()}], sys, 60);
+    el.innerHTML = txt ? `<b>Tip:</b> ${txt.trim()}` : `<span style="color:var(--txt3)">Open chat for AI advice ⚡</span>`;
+  } catch(e){
+    el.innerHTML = `<span style="color:var(--txt3)">Open chat for AI advice ⚡</span>`;
   }
 }
 
-window.onload = getLocationAndWeather;
+// ════════════════════════════════════════════
+//  CHAT
+// ════════════════════════════════════════════
+function openChat(){
+  document.getElementById('chat').classList.add('open');
+  document.getElementById('overlay').classList.add('on');
+  if(!chatHistory.length){
+    const greets = {
+      en:`⚡ Hey! I'm Zephyr, your Groq-powered weather assistant. It's currently ${toC(W.tempC)}${sym()} and ${W.condText.toLowerCase()} in ${W.city}. I can tell you about forecasts, what to wear, best times to go out, farming conditions, and more. What would you like to know?`,
+      sw:`⚡ Habari! Mimi ni Zephyr, msaidizi wako wa hali ya hewa. Sasa hivi ni ${toC(W.tempC)}${sym()} na ${W.condText.toLowerCase()} ${W.city}. Ninaweza kukuambia kuhusu utabiri wa hali ya hewa, mavazi, wakati mzuri wa kutoka, na zaidi!`,
+      fr:`⚡ Bonjour! Je suis Zephyr, votre assistant météo Groq. Il fait actuellement ${toC(W.tempC)}${sym()} et ${W.condText.toLowerCase()} à ${W.city}. Je peux vous renseigner sur les prévisions, les tenues, les meilleures heures pour sortir et plus encore!`,
+      es:`⚡ ¡Hola! Soy Zephyr, tu asistente meteorológico Groq. Ahora hay ${toC(W.tempC)}${sym()} y ${W.condText.toLowerCase()} en ${W.city}. Puedo informarte sobre el pronóstico, qué vestir, mejores horas para salir y más!`,
+      de:`⚡ Hallo! Ich bin Zephyr, Ihr Groq-Wetterassistent. Aktuell ${toC(W.tempC)}${sym()} und ${W.condText.toLowerCase()} in ${W.city}. Ich kann Ihnen Prognosen, Kleidungshinweise, optimale Ausgehtimes und mehr geben!`,
+    };
+    addMsg('ai', greets[lang]||greets.en);
+  }
+}
+function closeChat(){
+  document.getElementById('chat').classList.remove('open');
+  document.getElementById('overlay').classList.remove('on');
+}
 
-  </script>
+async function sendMsg(){
+  const inp = document.getElementById('chat-inp');
+  const msg = inp.value.trim();
+  if(!msg||busy) return;
+  inp.value=''; inp.style.height='auto';
+  addMsg('user', msg);
+  chatHistory.push({role:'user',content:msg});
+  await aiReply(msg);
+}
+function sendQ(q){ document.getElementById('chat-inp').value=q; sendMsg(); }
+
+function detectForecastRequest(msg){
+  const lower = msg.toLowerCase();
+  return lower.includes('forecast') || lower.includes('week') || lower.includes('tomorrow') ||
+         lower.includes('saturday') || lower.includes('sunday') || lower.includes('monday') ||
+         lower.includes('tuesday') || lower.includes('wednesday') || lower.includes('thursday') ||
+         lower.includes('friday') || lower.includes('rain') || lower.includes('days') ||
+         lower.includes('utabiri') || lower.includes('prévision') || lower.includes('pronóstico') ||
+         lower.includes('vorhersage');
+}
+
+async function aiReply(userMsg){
+  if(!groqKey){
+    addMsg('ai','⚙️ Please add your Groq API key in Settings first. Get a free key at console.groq.com — it\'s completely free!');
+    return;
+  }
+  busy=true;
+  document.getElementById('send-btn').disabled=true;
+  showTyping();
+
+  const langNames={en:'English',sw:'Swahili',fr:'French',es:'Spanish',de:'German'};
+  const isFcReq = detectForecastRequest(userMsg);
+
+  const sys = `You are Zephyr, a friendly, expert weather assistant powered by Groq's ultra-fast AI. You have access to real-time weather data for ${W.city}, Kenya.
+
+WEATHER DATA: ${weatherContext()}
+
+INSTRUCTIONS:
+- Answer weather questions with the specific data above
+- For forecast questions, list each day's forecast clearly with temperatures and conditions
+- For clothing questions, give specific outfit recommendations based on temperature and conditions
+- For activity questions, assess safety and comfort based on current/forecast weather
+- Keep responses concise but complete (2-4 sentences or a short list)
+- Be warm, helpful and practical
+- Respond in ${langNames[lang]||'English'}
+${isFcReq ? '- For this forecast request, format the forecast as a clear day-by-day list' : ''}`;
+
+  try{
+    const reply = await groqCall(chatHistory.slice(-12), sys);
+    hideTyping();
+
+    // If forecast request, also render a mini weather card
+    if(isFcReq && reply){
+      addMsg('ai', reply);
+      addForecastCard();
+    } else {
+      addMsg('ai', reply || "I couldn't generate a response. Please try again.");
+    }
+    chatHistory.push({role:'assistant',content:reply});
+  } catch(e){
+    hideTyping();
+    const errMsg = e.message.includes('401') ? '🔑 Invalid API key. Please check your Groq key in Settings.'
+      : e.message.includes('429') ? '⏱️ Rate limit reached. Groq free tier is generous — please wait a moment.'
+      : e.message.includes('No API key') ? '⚙️ Please add your Groq API key in Settings to use the AI chat.'
+      : `⚠️ Error: ${e.message}`;
+    addMsg('ai', errMsg);
+  }
+  busy=false;
+  document.getElementById('send-btn').disabled=false;
+}
+
+function addForecastCard(){
+  const box = document.getElementById('chat-msgs');
+  const d = document.createElement('div');
+  d.className='cmsg ai';
+  d.innerHTML=`
+    <div class="avt ai">📅</div>
+    <div>
+      <div class="wx-card-mini">
+        ${W.forecast.map((f,i)=>`
+          <div class="wx-row">
+            <span>${i===0?'Today':f.day} ${f.icon}</span>
+            <span class="wx-val">${toC(f.lo)}-${toC(f.hi)}${sym()} · 💧${f.rain}%</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="mtime">${new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
+    </div>`;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+}
+
+function addMsg(role, text){
+  const box = document.getElementById('chat-msgs');
+  const time = new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const d = document.createElement('div'); d.className=`cmsg ${role}`;
+  d.innerHTML=`
+    <div class="avt ${role}">${role==='ai'?'⚡':'👤'}</div>
+    <div>
+      <div class="bbl">${text}</div>
+      <div class="mtime">${time}</div>
+    </div>`;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+}
+function showTyping(){
+  const box=document.getElementById('chat-msgs');
+  const d=document.createElement('div'); d.className='cmsg ai'; d.id='typing';
+  d.innerHTML=`<div class="avt ai">⚡</div><div class="bbl typing-b"><div class="td"></div><div class="td"></div><div class="td"></div></div>`;
+  box.appendChild(d); box.scrollTop=box.scrollHeight;
+}
+function hideTyping(){ document.getElementById('typing')?.remove(); }
+function chatKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg();} }
+function autoH(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,88)+'px'; }
+
+// ════════════════════════════════════════════
+//  SETTINGS
+// ════════════════════════════════════════════
+function openSettings(){
+  document.getElementById('settings').classList.add('open');
+  document.getElementById('overlay').classList.add('on');
+  // populate key field
+  if(groqKey) document.getElementById('api-key-input').value=groqKey;
+  updateApiStatus();
+}
+function closeSettings(){
+  document.getElementById('settings').classList.remove('open');
+  document.getElementById('overlay').classList.remove('on');
+}
+document.getElementById('overlay').addEventListener('click',()=>{closeChat();closeSettings();});
+
+function updateApiStatus(){
+  const el=document.getElementById('api-status');
+  if(groqKey){
+    el.className='api-status ok'; el.textContent='✓ Key saved — ready to chat';
+  } else {
+    el.className='api-status'; el.textContent='No key saved. Get one free at console.groq.com';
+  }
+}
+
+async function saveApiKey(){
+  const val = document.getElementById('api-key-input').value.trim();
+  const el  = document.getElementById('api-status');
+  if(!val){ el.className='api-status err'; el.textContent='Please enter a key'; return; }
+  el.className='api-status'; el.textContent='Testing key…';
+  try{
+    const res = await fetch('https://api.groq.com/openai/v1/models',{
+      headers:{'Authorization':`Bearer ${val}`}
+    });
+    if(res.ok){
+      groqKey = val;
+      localStorage.setItem('zephyr_groq_key', val);
+      el.className='api-status ok'; el.textContent='✓ Key verified & saved!';
+      render();
+    } else {
+      el.className='api-status err'; el.textContent='✗ Invalid key — check and try again';
+    }
+  } catch(e){
+    // CORS may block the models endpoint — save anyway and test via chat
+    groqKey = val;
+    localStorage.setItem('zephyr_groq_key', val);
+    el.className='api-status ok'; el.textContent='✓ Key saved (verified on first chat)';
+    render();
+  }
+}
+
+function setTheme(th,btn){
+  document.documentElement.setAttribute('data-theme',th);
+  document.querySelectorAll('#theme-opts .opt').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on'); updateBg();
+}
+function setUnit(u,btn){
+  unit=u;
+  document.querySelectorAll('#u-c,#u-f').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on'); render();
+}
+function setFontSz(v){
+  document.documentElement.style.setProperty('--fs',v+'px');
+  document.getElementById('sz-lbl').textContent=v+'px';
+}
+function setFont(f,btn){
+  document.documentElement.style.setProperty('--ff-body',`'${f}', sans-serif`);
+  document.querySelectorAll('#font-opts .opt').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+}
+function setLang(l,btn){
+  lang=l;
+  document.querySelectorAll('#lang-opts .opt').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on'); render();
+}
+function setModel(m,btn){
+  groqModel=m;
+  document.querySelectorAll('#model-opts .opt').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('model-label').textContent=m;
+}
+
+// ════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════
+updateApiStatus();
+render();
+</script>
 </body>
 </html>
